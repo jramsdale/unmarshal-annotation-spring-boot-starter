@@ -1,5 +1,7 @@
 # unmarshal-annotation-spring-boot-starter
 
+![master branch SNAPSHOT build](https://github.com/jramsdale/unmarshal-annotation-spring-boot-starter/workflows/master%20branch%20SNAPSHOT%20build/badge.svg?branch=master)
+
 `unmarshal-annotation-spring-boot-starter` is a small Java utility library providing an `@Unmarshal` annotation that can be used to load the contents of a json file and unmarshal it to a Java object and assign it to the annotated field. This is handled via [Spring](https://spring.io/) and the library is provided as a [Spring Boot Starter](https://docs.spring.io/spring-boot/docs/current/reference/htmlsingle/#boot-features-developing-auto-configuration)
 
 ## Example
