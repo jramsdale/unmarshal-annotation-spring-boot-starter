@@ -6,7 +6,7 @@
 
 ## Example
 
-In this example the `myUser` field in a Spring bean is annotated with `@Unmarshal`, which must have a `location` attribute. The location identifies a [Resource](https://docs.spring.io/spring-framework/docs/current/javadoc-api/org/springframework/core/io/Resource.html) reachable by Spring's [ResourceLoader](https://docs.spring.io/spring-framework/docs/current/javadoc-api/org/springframework/core/io/ResourceLoader.html). When Spring creates the bean containing the annotation it will process the annotation, load the resource from `classpath:/testUser.json`, unmarshal it with Jackson, and assign the resultant `User` object to the annotated `myUser` field:
+In this example the `myUser` field in a Spring bean is annotated with `@Unmarshal`, which must have a `location` attribute. The location identifies a [Resource](https://docs.spring.io/spring-framework/docs/current/javadoc-api/org/springframework/core/io/Resource.html) reachable by Spring's [ResourceLoader](https://docs.spring.io/spring-framework/docs/current/javadoc-api/org/springframework/core/io/ResourceLoader.html). When Spring creates the bean containing the annotation it will process the annotation, load the resource from `classpath:/testUser.json`, unmarshal it with [Jackson](https://github.com/FasterXML/jackson), and assign the resultant `User` object to the annotated `myUser` field:
 
 ```java
     @Unmarshal(location = "classpath:/testUser.json")
