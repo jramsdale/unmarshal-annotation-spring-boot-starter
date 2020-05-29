@@ -1,0 +1,4 @@
+debug: true
+
+test:
+  resource2: testUser.json
