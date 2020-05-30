@@ -11,7 +11,7 @@
   </parent>
   <groupId>systems.misnomer.spring.unmarshal</groupId>
   <artifactId>unmarshal-annotation-spring-boot-starter</artifactId>
-  <version>0.0.1-SNAPSHOT</version>
+  <version>0.1-SNAPSHOT</version>
   <name>spring-unmarshal-annotation</name>
   <description>Spring Unmarshal Annotation Support</description>
 
@@ -19,6 +19,14 @@
     <java.version>1.8</java.version>
   </properties>
 
+  <distributionManagement>
+    <repository>
+      <id>github</id>
+      <name>GitHub Packages</name>
+      <url>https://maven.pkg.github.com/jramsdale/${artifactId}</url>
+    </repository>
+  </distributionManagement>
+  
   <dependencies>
     <dependency>
       <groupId>org.springframework.boot</groupId>
