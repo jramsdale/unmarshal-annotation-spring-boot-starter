@@ -17,6 +17,7 @@
 
   <properties>
     <java.version>1.8</java.version>
+    <orchid.version>0.21.0</orchid.version>
   </properties>
 
   <distributionManagement>
@@ -65,5 +66,39 @@
       <optional>true</optional>
     </dependency>
   </dependencies>
+
+  <pluginRepositories>
+    <pluginRepository>
+      <id>jcenter</id>
+      <name>bintray-plugins</name>
+      <url>https://jcenter.bintray.com</url>
+    </pluginRepository>
+    <pluginRepository>
+      <id>kotlinx</id>
+      <url>https://kotlin.bintray.com/kotlinx</url>
+    </pluginRepository>
+  </pluginRepositories>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>io.github.javaeden.orchid</groupId>
+        <artifactId>orchid-maven-plugin</artifactId>
+        <version>${orchid.version}</version>
+        <dependencies>
+          <dependency>
+            <groupId>io.github.javaeden.orchid</groupId>
+            <artifactId>OrchidAll</artifactId>
+            <version>${orchid.version}</version>
+          </dependency>
+        </dependencies>
+
+        <configuration>
+          <version>${project.version}</version>
+          <runTask>build</runTask>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
 
 </project>
