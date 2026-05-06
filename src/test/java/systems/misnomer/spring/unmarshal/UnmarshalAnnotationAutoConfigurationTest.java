@@ -2,7 +2,6 @@ package systems.misnomer.spring.unmarshal;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.test.context.FilteredClassLoader;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
@@ -60,7 +59,6 @@ class UnmarshalAnnotationAutoConfigurationTest {
         }
 
         @Bean(name = OVERRINING_UNMARSHAL_ANNOTATION_POST_PROCESSOR)
-        @Autowired
         public UnmarshalAnnotationPostProcessor overridingUnmarshalAnnotationPostProcessor(
                 ConfigurableEnvironment environment, ResourceLoader resourceLoader) {
             return new UnmarshalAnnotationPostProcessor(environment, resourceLoader, overridingObjectMapper());

@@ -1,10 +1,10 @@
 package systems.misnomer.spring.unmarshal;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
 import org.springframework.core.env.ConfigurableEnvironment;
 import org.springframework.core.io.ResourceLoader;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -17,7 +17,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
  * by fields annotated with <code>@Unmarshal</code>. A {@link ConfigurableEnvironment} and
  * {@link ResourceLoader} are also required and should already exist in the context
  */
-@Configuration(proxyBeanMethods = false)
+@AutoConfiguration
 @ConditionalOnMissingBean(UnmarshalAnnotationPostProcessor.class)
 @ConditionalOnClass(value = ObjectMapper.class)
 public class UnmarshalAnnotationAutoConfiguration {

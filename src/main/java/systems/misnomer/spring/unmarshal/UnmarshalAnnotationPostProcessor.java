@@ -10,7 +10,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.PropertyValues;
-import org.springframework.beans.factory.config.InstantiationAwareBeanPostProcessorAdapter;
+import org.springframework.beans.factory.config.InstantiationAwareBeanPostProcessor;
 import org.springframework.core.annotation.AnnotatedElementUtils;
 import org.springframework.core.annotation.AnnotationAttributes;
 import org.springframework.core.env.ConfigurableEnvironment;
@@ -39,7 +39,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
  * @see UnmarshalAnnotationAutoConfiguration
  * 
  */
-public class UnmarshalAnnotationPostProcessor extends InstantiationAwareBeanPostProcessorAdapter {
+public class UnmarshalAnnotationPostProcessor implements InstantiationAwareBeanPostProcessor {
 
     private Logger logger = LoggerFactory.getLogger(getClass());
 
@@ -67,7 +67,7 @@ public class UnmarshalAnnotationPostProcessor extends InstantiationAwareBeanPost
                 AnnotationAttributes mergedAnnotationAttributes =
                         AnnotatedElementUtils.getMergedAnnotationAttributes(field, Unmarshal.class);
                 String location = mergedAnnotationAttributes.getString("value");
-                if (StringUtils.isEmpty(location)) {
+                if (!StringUtils.hasText(location)) {
                     throw new UnmarshalException(
                             "'location' is a required parameter for @" + Unmarshal.class.getSimpleName());
                 }
