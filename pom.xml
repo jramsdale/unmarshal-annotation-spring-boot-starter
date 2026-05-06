@@ -40,6 +40,14 @@
     </dependency>
 
     <!-- Test Dependencies -->
+    <!--
+      Mockito is excluded because we don't use it. Pulling it in only triggers
+      the JDK 21+ "Mockito is currently self-attaching to enable the
+      inline-mock-maker" warning, which JDK 24+ is expected to turn into a
+      hard error. If a future test needs mocking, restore the dependency and
+      configure it as a -javaagent on surefire instead of relying on
+      self-attach.
+    -->
     <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-test</artifactId>
@@ -48,6 +56,14 @@
         <exclusion>
           <groupId>org.junit.vintage</groupId>
           <artifactId>junit-vintage-engine</artifactId>
+        </exclusion>
+        <exclusion>
+          <groupId>org.mockito</groupId>
+          <artifactId>mockito-core</artifactId>
+        </exclusion>
+        <exclusion>
+          <groupId>org.mockito</groupId>
+          <artifactId>mockito-junit-jupiter</artifactId>
         </exclusion>
       </exclusions>
     </dependency>
