@@ -5,6 +5,7 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+import org.springframework.boot.autoconfigure.jackson.JacksonAutoConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.core.env.ConfigurableEnvironment;
 import org.springframework.core.io.ResourceLoader;
@@ -24,7 +25,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
  * customized application-wide <code>ObjectMapper</code>. A {@link ConfigurableEnvironment} and
  * {@link ResourceLoader} are also required and should already exist in the context.
  */
-@AutoConfiguration
+@AutoConfiguration(after = JacksonAutoConfiguration.class)
 @ConditionalOnMissingBean(UnmarshalAnnotationPostProcessor.class)
 @ConditionalOnClass(value = ObjectMapper.class)
 public class UnmarshalAnnotationAutoConfiguration {
@@ -34,10 +35,8 @@ public class UnmarshalAnnotationAutoConfiguration {
 
     @Bean(name = UNMARSHAL_ANNOTATION_OBJECT_MAPPER)
     @ConditionalOnMissingBean(name = UNMARSHAL_ANNOTATION_OBJECT_MAPPER, value = ObjectMapper.class)
-    protected ObjectMapper objectMapper() {
-        ObjectMapper objectMapper = new ObjectMapper();
-        objectMapper.findAndRegisterModules();
-        return objectMapper;
+    ObjectMapper objectMapper() {
+        return new ObjectMapper().findAndRegisterModules();
     }
 
     @Bean(name = UNMARSHAL_ANNOTATION_POST_PROCESSOR)

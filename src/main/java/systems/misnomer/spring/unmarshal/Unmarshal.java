@@ -6,7 +6,6 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 import java.nio.charset.Charset;
-import org.springframework.context.annotation.Import;
 import org.springframework.core.annotation.AliasFor;
 import org.springframework.core.io.Resource;
 
@@ -22,7 +21,6 @@ import org.springframework.core.io.Resource;
 @Target({ElementType.FIELD})
 @Retention(RetentionPolicy.RUNTIME)
 @Documented
-@Import(UnmarshalAnnotationPostProcessor.class)
 public @interface Unmarshal {
 
     /**

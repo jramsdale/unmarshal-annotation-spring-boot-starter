@@ -4,15 +4,16 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
+import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.nio.charset.Charset;
+import java.nio.charset.IllegalCharsetNameException;
+import java.nio.charset.UnsupportedCharsetException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeansException;
-import org.springframework.beans.PropertyValues;
-import org.springframework.beans.factory.config.InstantiationAwareBeanPostProcessor;
+import org.springframework.beans.factory.config.BeanPostProcessor;
 import org.springframework.core.annotation.AnnotatedElementUtils;
-import org.springframework.core.annotation.AnnotationAttributes;
 import org.springframework.core.env.ConfigurableEnvironment;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.ResourceLoader;
@@ -39,9 +40,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
  * @see UnmarshalAnnotationAutoConfiguration
  * 
  */
-public class UnmarshalAnnotationPostProcessor implements InstantiationAwareBeanPostProcessor {
+public class UnmarshalAnnotationPostProcessor implements BeanPostProcessor {
 
-    private Logger logger = LoggerFactory.getLogger(getClass());
+    private static final Logger logger = LoggerFactory.getLogger(UnmarshalAnnotationPostProcessor.class);
 
     private final ConfigurableEnvironment environment;
     private final ResourceLoader resourceLoader;
@@ -55,37 +56,47 @@ public class UnmarshalAnnotationPostProcessor implements InstantiationAwareBeanP
     }
 
     @Override
-    public PropertyValues postProcessProperties(PropertyValues pvs, Object bean, String beanName)
-            throws BeansException {
+    public Object postProcessBeforeInitialization(Object bean, String beanName) throws BeansException {
         ReflectionUtils.doWithFields(bean.getClass(), field -> {
-            Unmarshal annotation = field.getAnnotation(Unmarshal.class);
+            Unmarshal annotation = AnnotatedElementUtils.findMergedAnnotation(field, Unmarshal.class);
             if (annotation != null) {
-                if (Modifier.isStatic(field.getModifiers())) {
-                    throw new UnmarshalException(
-                            "@" + Unmarshal.class.getSimpleName() + "annotation is not supported on static fields.");
-                }
-                AnnotationAttributes mergedAnnotationAttributes =
-                        AnnotatedElementUtils.getMergedAnnotationAttributes(field, Unmarshal.class);
-                String location = mergedAnnotationAttributes.getString("value");
-                if (!StringUtils.hasText(location)) {
-                    throw new UnmarshalException(
-                            "'location' is a required parameter for @" + Unmarshal.class.getSimpleName());
-                }
-                Resource resource = resourceLoader.getResource(environment.resolvePlaceholders(location));
-                if (resource.exists()) {
-                    ReflectionUtils.makeAccessible(field);
-                    Charset charset = Charset.forName(annotation.charset());
-                    JavaType javaType = objectMapper.getTypeFactory().constructType(field.getGenericType());
-                    field.set(bean, unmarshall(javaType, resource, charset));
-                } else {
-                    throw new UnmarshalException("No resource was found for " + resource.getDescription());
-                }
+                processAnnotatedField(bean, field, annotation);
             }
         });
-        return pvs;
+        return bean;
     }
 
-    Object unmarshall(JavaType javaType, Resource resource, Charset charset) {
+    private void processAnnotatedField(Object bean, Field field, Unmarshal annotation)
+            throws IllegalAccessException {
+        if (Modifier.isStatic(field.getModifiers())) {
+            throw new UnmarshalException(
+                    "@" + Unmarshal.class.getSimpleName() + "annotation is not supported on static fields.");
+        }
+        String location = annotation.value();
+        if (!StringUtils.hasText(location)) {
+            throw new UnmarshalException(
+                    "'location' is a required parameter for @" + Unmarshal.class.getSimpleName());
+        }
+        Resource resource = resourceLoader.getResource(environment.resolvePlaceholders(location));
+        if (!resource.exists()) {
+            throw new UnmarshalException("No resource was found for " + resource.getDescription());
+        }
+        ReflectionUtils.makeAccessible(field);
+        Charset charset;
+        try {
+            charset = Charset.forName(annotation.charset());
+        } catch (IllegalCharsetNameException | UnsupportedCharsetException e) {
+            throw new UnmarshalException("Unsupported charset '" + annotation.charset() + "' on field '"
+                    + field.getName() + "'", e);
+        }
+        JavaType javaType = objectMapper.getTypeFactory().constructType(field.getGenericType());
+        // field.set failures here would indicate a library bug (a type mismatch between the
+        // unmarshalled value and the field). Intentionally left to surface raw rather than be
+        // wrapped, so the bug doesn't get masked.
+        field.set(bean, unmarshal(javaType, resource, charset));
+    }
+
+    Object unmarshal(JavaType javaType, Resource resource, Charset charset) {
         if (javaType.getRawClass() == String.class) {
             logger.debug("Loading resource '{}' as String", resource);
             try (InputStream in = resource.getInputStream()) {
