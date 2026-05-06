@@ -9,6 +9,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.env.ConfigurableEnvironment;
 import org.springframework.core.io.ResourceLoader;
+import org.springframework.test.util.ReflectionTestUtils;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 /**
@@ -20,7 +21,7 @@ class UnmarshalAnnotationAutoConfigurationTest {
             .withConfiguration(AutoConfigurations.of(UnmarshalAnnotationAutoConfiguration.class));
 
     @Test
-    void happyPathTest() {
+    void happyPath() {
         this.contextRunner.run((context) -> {
             assertThat(context).hasSingleBean(UnmarshalAnnotationPostProcessor.class);
             assertThat(context).getBean(UnmarshalAnnotationAutoConfiguration.UNMARSHAL_ANNOTATION_OBJECT_MAPPER)
@@ -29,18 +30,51 @@ class UnmarshalAnnotationAutoConfigurationTest {
     }
 
     @Test
-    void failsWithoutObjectMapperTest() {
+    void fallbackObjectMapperIsUsedWhenNoneAvailable() {
+        this.contextRunner.run((context) -> {
+            ObjectMapper fallback = context.getBean(
+                    UnmarshalAnnotationAutoConfiguration.UNMARSHAL_ANNOTATION_OBJECT_MAPPER, ObjectMapper.class);
+            UnmarshalAnnotationPostProcessor pp = context.getBean(UnmarshalAnnotationPostProcessor.class);
+            assertThat(ReflectionTestUtils.getField(pp, "objectMapper")).isSameAs(fallback);
+        });
+    }
+
+    @Test
+    void fallbackIsSkippedWhenAnotherObjectMapperPresent() {
+        this.contextRunner.withBean("appObjectMapper", ObjectMapper.class, ObjectMapper::new).run((context) -> {
+            assertThat(context).hasSingleBean(ObjectMapper.class);
+            assertThat(context)
+                    .doesNotHaveBean(UnmarshalAnnotationAutoConfiguration.UNMARSHAL_ANNOTATION_OBJECT_MAPPER);
+            ObjectMapper appMapper = context.getBean("appObjectMapper", ObjectMapper.class);
+            UnmarshalAnnotationPostProcessor pp = context.getBean(UnmarshalAnnotationPostProcessor.class);
+            assertThat(ReflectionTestUtils.getField(pp, "objectMapper")).isSameAs(appMapper);
+        });
+    }
+
+    @Test
+    void namedOverrideIsPreferredOverAnyOtherObjectMapper() {
+        ObjectMapper override = new ObjectMapper();
+        this.contextRunner
+                .withBean(UnmarshalAnnotationAutoConfiguration.UNMARSHAL_ANNOTATION_OBJECT_MAPPER, ObjectMapper.class,
+                        () -> override)
+                .withBean("appObjectMapper", ObjectMapper.class, ObjectMapper::new)
+                .run((context) -> {
+                    UnmarshalAnnotationPostProcessor pp = context.getBean(UnmarshalAnnotationPostProcessor.class);
+                    assertThat(ReflectionTestUtils.getField(pp, "objectMapper")).isSameAs(override);
+                });
+    }
+
+    @Test
+    void blockedWithoutObjectMapperOnClasspath() {
         this.contextRunner.withClassLoader(new FilteredClassLoader(ObjectMapper.class))
                 .run((context) -> assertThat(context).doesNotHaveBean(UnmarshalAnnotationPostProcessor.class));
     }
 
     @Test
-    void overrideableBeanTest() {
+    void userPostProcessorOverridesAutoConfig() {
         this.contextRunner.withUserConfiguration(OverridingConfiguration.class).run((context) -> {
             assertThat(context).hasSingleBean(UnmarshalAnnotationPostProcessor.class);
-            assertThat(context).getBean(OverridingConfiguration.OVERRIDING_UNMARSHAL_ANNOTATION_OBJECT_MAPPER)
-                    .isSameAs(context.getBean(ObjectMapper.class));
-            assertThat(context).getBean(OverridingConfiguration.OVERRINING_UNMARSHAL_ANNOTATION_POST_PROCESSOR)
+            assertThat(context).getBean(OverridingConfiguration.OVERRIDING_UNMARSHAL_ANNOTATION_POST_PROCESSOR)
                     .isSameAs(context.getBean(UnmarshalAnnotationPostProcessor.class));
         });
     }
@@ -50,7 +84,7 @@ class UnmarshalAnnotationAutoConfigurationTest {
 
         public static final String OVERRIDING_UNMARSHAL_ANNOTATION_OBJECT_MAPPER =
                 "overriding" + UnmarshalAnnotationAutoConfiguration.UNMARSHAL_ANNOTATION_OBJECT_MAPPER;
-        public static final String OVERRINING_UNMARSHAL_ANNOTATION_POST_PROCESSOR =
+        public static final String OVERRIDING_UNMARSHAL_ANNOTATION_POST_PROCESSOR =
                 "overriding" + UnmarshalAnnotationAutoConfiguration.UNMARSHAL_ANNOTATION_POST_PROCESSOR;
 
         @Bean(name = OVERRIDING_UNMARSHAL_ANNOTATION_OBJECT_MAPPER)
@@ -58,7 +92,7 @@ class UnmarshalAnnotationAutoConfigurationTest {
             return new ObjectMapper();
         }
 
-        @Bean(name = OVERRINING_UNMARSHAL_ANNOTATION_POST_PROCESSOR)
+        @Bean(name = OVERRIDING_UNMARSHAL_ANNOTATION_POST_PROCESSOR)
         public UnmarshalAnnotationPostProcessor overridingUnmarshalAnnotationPostProcessor(
                 ConfigurableEnvironment environment, ResourceLoader resourceLoader) {
             return new UnmarshalAnnotationPostProcessor(environment, resourceLoader, overridingObjectMapper());

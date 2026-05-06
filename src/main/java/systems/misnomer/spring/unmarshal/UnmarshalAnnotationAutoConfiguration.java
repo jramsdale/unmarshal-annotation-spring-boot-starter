@@ -1,6 +1,7 @@
 package systems.misnomer.spring.unmarshal;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -13,9 +14,15 @@ import com.fasterxml.jackson.databind.ObjectMapper;
  * configures Spring to handle the {@link Unmarshal} annotation by instantiating and registering an
  * {@link UnmarshalAnnotationPostProcessor}. This will only occur if the context does not already
  * contain an instance of <code>UnmarshalAnnotationPostProcessor</code> and if {@link ObjectMapper}
- * is in the classpath. The <code>ObjectMapper</code> handles the unmarshalling of json referenced
- * by fields annotated with <code>@Unmarshal</code>. A {@link ConfigurableEnvironment} and
- * {@link ResourceLoader} are also required and should already exist in the context
+ * is on the classpath.
+ * <p>
+ * The post processor uses, in order of preference: an <code>ObjectMapper</code> named
+ * {@value #UNMARSHAL_ANNOTATION_OBJECT_MAPPER} (the override hook), or any other
+ * <code>ObjectMapper</code> already in the context (typically the one provided by Spring Boot's
+ * {@link JacksonAutoConfiguration}). A barebones <code>ObjectMapper</code> is registered as a
+ * fallback only if no <code>ObjectMapper</code> bean exists; this ensures we never displace a
+ * customized application-wide <code>ObjectMapper</code>. A {@link ConfigurableEnvironment} and
+ * {@link ResourceLoader} are also required and should already exist in the context.
  */
 @AutoConfiguration
 @ConditionalOnMissingBean(UnmarshalAnnotationPostProcessor.class)
@@ -35,8 +42,11 @@ public class UnmarshalAnnotationAutoConfiguration {
 
     @Bean(name = UNMARSHAL_ANNOTATION_POST_PROCESSOR)
     public UnmarshalAnnotationPostProcessor unmarshalAnnotationPostProcessor(
-            @Autowired ConfigurableEnvironment environment, @Autowired ResourceLoader resourceLoader) {
-        return new UnmarshalAnnotationPostProcessor(environment, resourceLoader, objectMapper());
+            ConfigurableEnvironment environment, ResourceLoader resourceLoader,
+            @Qualifier(UNMARSHAL_ANNOTATION_OBJECT_MAPPER) ObjectProvider<ObjectMapper> overrideProvider,
+            ObjectProvider<ObjectMapper> defaultProvider) {
+        ObjectMapper objectMapper = overrideProvider.getIfAvailable(defaultProvider::getObject);
+        return new UnmarshalAnnotationPostProcessor(environment, resourceLoader, objectMapper);
     }
 
 }
