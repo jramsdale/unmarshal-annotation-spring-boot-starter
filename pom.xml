@@ -11,7 +11,7 @@
   </parent>
   <groupId>systems.misnomer.spring.unmarshal</groupId>
   <artifactId>unmarshal-annotation-spring-boot-starter</artifactId>
-  <version>0.1-SNAPSHOT</version>
+  <version>0.2.0-SNAPSHOT</version>
   <name>spring-unmarshal-annotation</name>
   <description>Spring Unmarshal Annotation Support</description>
 
