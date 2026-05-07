@@ -70,7 +70,7 @@ public class UnmarshalAnnotationPostProcessor implements BeanPostProcessor {
             throws IllegalAccessException {
         if (Modifier.isStatic(field.getModifiers())) {
             throw new UnmarshalException(
-                    "@" + Unmarshal.class.getSimpleName() + "annotation is not supported on static fields.");
+                    "@" + Unmarshal.class.getSimpleName() + " annotation is not supported on static fields.");
         }
         String location = annotation.value();
         if (!StringUtils.hasText(location)) {

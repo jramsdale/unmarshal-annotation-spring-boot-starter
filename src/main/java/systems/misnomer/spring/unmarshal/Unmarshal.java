@@ -40,7 +40,7 @@ public @interface Unmarshal {
     String value() default "";
     
     /**
-     * the name of the (@link {@link Charset} to be used for unmarshalling resources.
+     * the name of the {@link Charset} to be used for unmarshalling resources.
      * 
      * @return charset name
      */
