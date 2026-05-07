@@ -129,6 +129,24 @@ class UnmarshalAnnotationExceptionTest {
                         ConflictingAliasTest.class.getSimpleName()));
     }
 
+    private class UnresolvablePlaceholderTest {
+        /**
+         * Unresolvable property placeholders pass through {@code Environment#resolvePlaceholders}
+         * unchanged (it's the lenient API), so the literal {@code ${...}} reaches
+         * {@code ResourceLoader#getResource} as the location, which then surfaces as a
+         * "resource not found" {@link UnmarshalException}.
+         */
+        @Unmarshal("${this.property.is.never.set}")
+        User user;
+    }
+
+    @Test
+    void unresolvablePlaceholderTest() {
+        UnresolvablePlaceholderTest bean = new UnresolvablePlaceholderTest();
+        Assertions.assertThrows(UnmarshalException.class, () -> unmarshalAnnotationPostProcessor
+                .postProcessBeforeInitialization(bean, UnresolvablePlaceholderTest.class.getSimpleName()));
+    }
+
     /**
      * this test exists to appease the code coverage gods. If I could make
      * {@link systems.misnomer.spring.unmarshal.UnmarshalAnnotationPostProcessor.unmarshal(JavaType,

@@ -71,6 +71,15 @@ class UnmarshalAnnotationAutoConfigurationTest {
     }
 
     @Test
+    void annotatedFieldOnSuperclassIsProcessed() {
+        this.contextRunner.withBean("childBean", ChildBean.class).run((context) -> {
+            ChildBean child = context.getBean(ChildBean.class);
+            assertThat(child.parentUser).isNotNull();
+            assertThat(child.parentUser.getName()).isEqualTo("Max");
+        });
+    }
+
+    @Test
     void userPostProcessorOverridesAutoConfig() {
         this.contextRunner.withUserConfiguration(OverridingConfiguration.class).run((context) -> {
             assertThat(context).hasSingleBean(UnmarshalAnnotationPostProcessor.class);
@@ -98,6 +107,16 @@ class UnmarshalAnnotationAutoConfigurationTest {
             return new UnmarshalAnnotationPostProcessor(environment, resourceLoader, overridingObjectMapper());
         }
 
+    }
+
+    static class ParentBean {
+
+        @Unmarshal("classpath:/testUser.json")
+        User parentUser;
+
+    }
+
+    static class ChildBean extends ParentBean {
     }
 
 }
