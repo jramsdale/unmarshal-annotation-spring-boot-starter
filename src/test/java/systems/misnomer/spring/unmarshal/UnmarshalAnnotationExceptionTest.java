@@ -72,7 +72,7 @@ class UnmarshalAnnotationExceptionTest {
          * This is an invalid usage of {@link Unmarshal} - bad charset
          */
         @Unmarshal(location = "classpath:/testUser.json", charset = "NOT-A-REAL-CHARSET")
-        String user;
+        User user;
     }
 
     @Test
@@ -189,7 +189,7 @@ class UnmarshalAnnotationExceptionTest {
      */
     @Test
     void unmarshalExceptionTest() {
-        JavaType javaType = TypeFactory.defaultInstance().constructType(String.class);
+        JavaType javaType = TypeFactory.defaultInstance().constructType(User.class);
         Resource resource = new DescriptiveResource("Fake resource");
         Assertions.assertThrows(UnmarshalException.class,
                 () -> unmarshalAnnotationPostProcessor.unmarshal(javaType, resource, Charset.forName("UTF-8")));

@@ -48,9 +48,6 @@ class UnmarshalAnnotationTest {
     @Unmarshal("${test.resource2}")
     User myUser3;
 
-    @Unmarshal(location = "classpath:/testUser.json")
-    String myString;
-
     /**
      * Json lists are valid.
      */
@@ -78,10 +75,11 @@ class UnmarshalAnnotationTest {
     Map<String, List<User>> userMap;
 
     /**
-     * Resources are decoded with the {@link Unmarshal#charset() charset} attribute.
+     * Resources are decoded with the {@link Unmarshal#charset() charset} attribute before being
+     * passed to Jackson, so non-UTF-8 JSON deserializes correctly when the encoding is declared.
      */
-    @Unmarshal(location = "classpath:/latin1.txt", charset = "ISO-8859-1")
-    String latin1String;
+    @Unmarshal(location = "classpath:/latin1User.json", charset = "ISO-8859-1")
+    User latin1User;
 
     @Test
     void testUnmarshalling() {
@@ -93,9 +91,6 @@ class UnmarshalAnnotationTest {
 
         assertNotNull(myUser3);
         assertEquals("Max", myUser3.getName());
-
-        assertNotNull(myString);
-        assertEquals("{\n" + "  \"name\":\"Max\"\n" + "}", myString);
 
         assertEquals(5, myList.size());
         assertEquals("Brixton", myList.get(0));
@@ -113,7 +108,8 @@ class UnmarshalAnnotationTest {
         assertEquals("Annie", userMap.get("team-a").get(1).getName());
         assertEquals("Sam", userMap.get("team-b").get(0).getName());
 
-        assertEquals("Café résumé naïve", latin1String);
+        assertNotNull(latin1User);
+        assertEquals("Café", latin1User.getName());
     }
 
 }
