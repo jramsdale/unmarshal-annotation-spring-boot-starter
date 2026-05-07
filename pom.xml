@@ -72,6 +72,17 @@
       <artifactId>jackson-datatype-jsr310</artifactId>
       <scope>test</scope>
     </dependency>
+    <!--
+      spring-web brings Jackson2ObjectMapperBuilder, which JacksonAutoConfiguration's
+      ObjectMapper-providing inner @Configuration classes are conditional on. Without it,
+      JacksonAutoConfiguration loads but registers no ObjectMapper bean, so we can't realistically
+      test our autoconfig's coexistence with Boot's customized ObjectMapper.
+    -->
+    <dependency>
+      <groupId>org.springframework</groupId>
+      <artifactId>spring-web</artifactId>
+      <scope>test</scope>
+    </dependency>
 
 
     <!-- Spring Factory Support -->
