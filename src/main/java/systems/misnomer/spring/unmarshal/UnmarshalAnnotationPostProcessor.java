@@ -48,6 +48,15 @@ public class UnmarshalAnnotationPostProcessor implements BeanPostProcessor {
     private final ResourceLoader resourceLoader;
     private final ObjectMapper objectMapper;
 
+    /**
+     * Constructs the post processor with the collaborators it needs to resolve resource locations
+     * and deserialize their contents.
+     *
+     * @param environment Spring environment used to resolve property placeholders in
+     *        {@link Unmarshal#location()} values
+     * @param resourceLoader resource loader used to load the resource at the resolved location
+     * @param objectMapper Jackson mapper used to deserialize non-{@link String} field types
+     */
     public UnmarshalAnnotationPostProcessor(ConfigurableEnvironment environment, ResourceLoader resourceLoader,
             ObjectMapper objectMapper) {
         this.environment = environment;
