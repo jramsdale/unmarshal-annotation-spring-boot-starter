@@ -88,7 +88,12 @@ public class UnmarshalAnnotationPostProcessor implements BeanPostProcessor {
         }
         Resource resource = resourceLoader.getResource(environment.resolvePlaceholders(location));
         if (!resource.exists()) {
-            throw new UnmarshalException("No resource was found for " + resource.getDescription());
+            if (annotation.required()) {
+                throw new UnmarshalException("No resource was found for " + resource.getDescription());
+            }
+            logger.debug("Skipping optional @Unmarshal field '{}': resource '{}' not found",
+                    field.getName(), resource.getDescription());
+            return;
         }
         ReflectionUtils.makeAccessible(field);
         Charset charset;

@@ -41,9 +41,22 @@ public @interface Unmarshal {
     
     /**
      * the name of the {@link Charset} to be used for unmarshalling resources.
-     * 
+     *
      * @return charset name
      */
     String charset() default "UTF-8";
+
+    /**
+     * whether the resource at {@link #location()} must exist.
+     * <p>
+     * When {@code true} (the default) a missing resource raises {@link UnmarshalException}.
+     * When {@code false} a missing resource is silently ignored and the annotated field is left at
+     * its declared default. Other failures (a malformed resource, an unsupported charset, etc.)
+     * still raise an exception even when this is {@code false} -- this attribute affects only the
+     * "resource not found" case.
+     *
+     * @return {@code false} to no-op when the resource is missing; {@code true} to throw
+     */
+    boolean required() default true;
 
 }

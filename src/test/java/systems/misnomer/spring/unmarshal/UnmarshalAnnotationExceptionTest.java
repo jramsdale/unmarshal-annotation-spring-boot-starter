@@ -129,6 +129,39 @@ class UnmarshalAnnotationExceptionTest {
                         ConflictingAliasTest.class.getSimpleName()));
     }
 
+    private class OptionalMissingResourceTest {
+        /**
+         * required = false on a resource that doesn't exist should silently no-op, leaving the
+         * annotated field at its declared default ({@code null}).
+         */
+        @Unmarshal(location = "classpath:/notFound.json", required = false)
+        User user;
+    }
+
+    @Test
+    void optionalMissingResourceTest() {
+        OptionalMissingResourceTest bean = new OptionalMissingResourceTest();
+        unmarshalAnnotationPostProcessor.postProcessBeforeInitialization(bean,
+                OptionalMissingResourceTest.class.getSimpleName());
+        Assertions.assertNull(bean.user);
+    }
+
+    private class OptionalMalformedResourceTest {
+        /**
+         * required = false controls only the "resource not found" case. A resource that exists
+         * but is malformed still throws.
+         */
+        @Unmarshal(location = "classpath:/notJson.txt", required = false)
+        User user;
+    }
+
+    @Test
+    void optionalMalformedResourceStillThrows() {
+        OptionalMalformedResourceTest bean = new OptionalMalformedResourceTest();
+        Assertions.assertThrows(UnmarshalException.class, () -> unmarshalAnnotationPostProcessor
+                .postProcessBeforeInitialization(bean, OptionalMalformedResourceTest.class.getSimpleName()));
+    }
+
     private class UnresolvablePlaceholderTest {
         /**
          * Unresolvable property placeholders pass through {@code Environment#resolvePlaceholders}
