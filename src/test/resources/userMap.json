@@ -1,0 +1,9 @@
+{
+  "team-a": [
+    {"name":"Max"},
+    {"name":"Annie"}
+  ],
+  "team-b": [
+    {"name":"Sam"}
+  ]
+}

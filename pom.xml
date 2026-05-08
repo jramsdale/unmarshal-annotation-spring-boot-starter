@@ -6,18 +6,46 @@
   <parent>
     <groupId>org.springframework.boot</groupId>
     <artifactId>spring-boot-starter-parent</artifactId>
-    <version>2.3.0.RELEASE</version>
+    <version>3.5.3</version>
     <relativePath /> <!-- lookup parent from repository -->
   </parent>
   <groupId>systems.misnomer.spring.unmarshal</groupId>
   <artifactId>unmarshal-annotation-spring-boot-starter</artifactId>
-  <version>0.1-SNAPSHOT</version>
+  <version>0.2.0-SNAPSHOT</version>
   <name>spring-unmarshal-annotation</name>
-  <description>Spring Unmarshal Annotation Support</description>
+  <description>Spring Boot starter providing an @Unmarshal annotation that loads a JSON resource
+    and assigns the deserialized value to the annotated field.</description>
+  <url>https://github.com/jramsdale/unmarshal-annotation-spring-boot-starter</url>
+
+  <licenses>
+    <license>
+      <name>MIT License</name>
+      <url>https://opensource.org/licenses/MIT</url>
+      <distribution>repo</distribution>
+    </license>
+  </licenses>
+
+  <developers>
+    <developer>
+      <id>jramsdale</id>
+      <name>Jeff Ramsdale</name>
+      <url>https://github.com/jramsdale</url>
+    </developer>
+  </developers>
+
+  <scm>
+    <connection>scm:git:https://github.com/jramsdale/unmarshal-annotation-spring-boot-starter.git</connection>
+    <developerConnection>scm:git:git@github.com:jramsdale/unmarshal-annotation-spring-boot-starter.git</developerConnection>
+    <url>https://github.com/jramsdale/unmarshal-annotation-spring-boot-starter</url>
+  </scm>
+
+  <issueManagement>
+    <system>GitHub Issues</system>
+    <url>https://github.com/jramsdale/unmarshal-annotation-spring-boot-starter/issues</url>
+  </issueManagement>
 
   <properties>
-    <java.version>1.8</java.version>
-    <orchid.version>0.21.0</orchid.version>
+    <java.version>17</java.version>
   </properties>
 
   <distributionManagement>
@@ -41,6 +69,14 @@
     </dependency>
 
     <!-- Test Dependencies -->
+    <!--
+      Mockito is excluded because we don't use it. Pulling it in only triggers
+      the JDK 21+ "Mockito is currently self-attaching to enable the
+      inline-mock-maker" warning, which JDK 24+ is expected to turn into a
+      hard error. If a future test needs mocking, restore the dependency and
+      configure it as a -javaagent on surefire instead of relying on
+      self-attach.
+    -->
     <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-test</artifactId>
@@ -50,11 +86,30 @@
           <groupId>org.junit.vintage</groupId>
           <artifactId>junit-vintage-engine</artifactId>
         </exclusion>
+        <exclusion>
+          <groupId>org.mockito</groupId>
+          <artifactId>mockito-core</artifactId>
+        </exclusion>
+        <exclusion>
+          <groupId>org.mockito</groupId>
+          <artifactId>mockito-junit-jupiter</artifactId>
+        </exclusion>
       </exclusions>
     </dependency>
     <dependency>
       <groupId>com.fasterxml.jackson.datatype</groupId>
       <artifactId>jackson-datatype-jsr310</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <!--
+      spring-web brings Jackson2ObjectMapperBuilder, which JacksonAutoConfiguration's
+      ObjectMapper-providing inner @Configuration classes are conditional on. Without it,
+      JacksonAutoConfiguration loads but registers no ObjectMapper bean, so we can't realistically
+      test our autoconfig's coexistence with Boot's customized ObjectMapper.
+    -->
+    <dependency>
+      <groupId>org.springframework</groupId>
+      <artifactId>spring-web</artifactId>
       <scope>test</scope>
     </dependency>
 
@@ -66,18 +121,6 @@
       <optional>true</optional>
     </dependency>
   </dependencies>
-
-  <pluginRepositories>
-    <pluginRepository>
-      <id>jcenter</id>
-      <name>bintray-plugins</name>
-      <url>https://jcenter.bintray.com</url>
-    </pluginRepository>
-    <pluginRepository>
-      <id>kotlinx</id>
-      <url>https://kotlin.bintray.com/kotlinx</url>
-    </pluginRepository>
-  </pluginRepositories>
 
   <build>
     <plugins>
@@ -106,21 +149,45 @@
         </executions>
       </plugin>
       <plugin>
-        <groupId>io.github.javaeden.orchid</groupId>
-        <artifactId>orchid-maven-plugin</artifactId>
-        <version>${orchid.version}</version>
-        <dependencies>
-          <dependency>
-            <groupId>io.github.javaeden.orchid</groupId>
-            <artifactId>OrchidAll</artifactId>
-            <version>${orchid.version}</version>
-          </dependency>
-        </dependencies>
-
-        <configuration>
-          <version>${project.version}</version>
-          <runTask>build</runTask>
-        </configuration>
+        <groupId>org.jacoco</groupId>
+        <artifactId>jacoco-maven-plugin</artifactId>
+        <version>0.8.14</version>
+        <executions>
+          <execution>
+            <id>prepare-agent</id>
+            <goals>
+              <goal>prepare-agent</goal>
+            </goals>
+          </execution>
+          <execution>
+            <id>report</id>
+            <phase>verify</phase>
+            <goals>
+              <goal>report</goal>
+            </goals>
+          </execution>
+          <execution>
+            <id>check</id>
+            <phase>verify</phase>
+            <goals>
+              <goal>check</goal>
+            </goals>
+            <configuration>
+              <rules>
+                <rule>
+                  <element>BUNDLE</element>
+                  <limits>
+                    <limit>
+                      <counter>LINE</counter>
+                      <value>COVEREDRATIO</value>
+                      <minimum>0.80</minimum>
+                    </limit>
+                  </limits>
+                </rule>
+              </rules>
+            </configuration>
+          </execution>
+        </executions>
       </plugin>
     </plugins>
   </build>

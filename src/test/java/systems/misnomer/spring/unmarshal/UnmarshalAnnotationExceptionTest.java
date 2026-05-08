@@ -1,12 +1,11 @@
 package systems.misnomer.spring.unmarshal;
 
 import java.nio.charset.Charset;
-import java.nio.charset.UnsupportedCharsetException;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.MutablePropertyValues;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.core.annotation.AnnotationConfigurationException;
 import org.springframework.core.io.DescriptiveResource;
 import org.springframework.core.io.Resource;
 import com.fasterxml.jackson.databind.JavaType;
@@ -35,7 +34,7 @@ class UnmarshalAnnotationExceptionTest {
     void noLocationTest() {
         NoLocationTest bean = new NoLocationTest();
         Assertions.assertThrows(UnmarshalException.class, () -> unmarshalAnnotationPostProcessor
-                .postProcessProperties(new MutablePropertyValues(), bean, NoLocationTest.class.getSimpleName()));
+                .postProcessBeforeInitialization(bean, NoLocationTest.class.getSimpleName()));
     }
 
     private static class StaticFieldTest {
@@ -50,7 +49,7 @@ class UnmarshalAnnotationExceptionTest {
     void staticFieldTest() {
         StaticFieldTest bean = new StaticFieldTest();
         Assertions.assertThrows(UnmarshalException.class, () -> unmarshalAnnotationPostProcessor
-                .postProcessProperties(new MutablePropertyValues(), bean, StaticFieldTest.class.getSimpleName()));
+                .postProcessBeforeInitialization(bean, StaticFieldTest.class.getSimpleName()));
     }
 
     private class BadLocationTest {
@@ -65,7 +64,7 @@ class UnmarshalAnnotationExceptionTest {
     void badLocationTest() {
         BadLocationTest bean = new BadLocationTest();
         Assertions.assertThrows(UnmarshalException.class, () -> unmarshalAnnotationPostProcessor
-                .postProcessProperties(new MutablePropertyValues(), bean, BadLocationTest.class.getSimpleName()));
+                .postProcessBeforeInitialization(bean, BadLocationTest.class.getSimpleName()));
     }
 
     private class BadCharsetTest {
@@ -73,14 +72,14 @@ class UnmarshalAnnotationExceptionTest {
          * This is an invalid usage of {@link Unmarshal} - bad charset
          */
         @Unmarshal(location = "classpath:/testUser.json", charset = "NOT-A-REAL-CHARSET")
-        String user;
+        User user;
     }
 
     @Test
     void badCharsetTest() {
         BadCharsetTest bean = new BadCharsetTest();
-        Assertions.assertThrows(UnsupportedCharsetException.class, () -> unmarshalAnnotationPostProcessor
-                .postProcessProperties(new MutablePropertyValues(), bean, BadCharsetTest.class.getSimpleName()));
+        Assertions.assertThrows(UnmarshalException.class, () -> unmarshalAnnotationPostProcessor
+                .postProcessBeforeInitialization(bean, BadCharsetTest.class.getSimpleName()));
     }
 
     private class EmptyUserTest {
@@ -95,7 +94,7 @@ class UnmarshalAnnotationExceptionTest {
     void emptyUserTest() {
         EmptyUserTest bean = new EmptyUserTest();
         Assertions.assertThrows(UnmarshalException.class, () -> unmarshalAnnotationPostProcessor
-                .postProcessProperties(new MutablePropertyValues(), bean, EmptyUserTest.class.getSimpleName()));
+                .postProcessBeforeInitialization(bean, EmptyUserTest.class.getSimpleName()));
     }
 
     private class NotJsonTest {
@@ -110,22 +109,90 @@ class UnmarshalAnnotationExceptionTest {
     void notJsonTest() {
         NotJsonTest bean = new NotJsonTest();
         Assertions.assertThrows(UnmarshalException.class, () -> unmarshalAnnotationPostProcessor
-                .postProcessProperties(new MutablePropertyValues(), bean, NotJsonTest.class.getSimpleName()));
+                .postProcessBeforeInitialization(bean, NotJsonTest.class.getSimpleName()));
+    }
+
+    private class ConflictingAliasTest {
+        /**
+         * This is an invalid usage of {@link Unmarshal} - location and value are mutual aliases
+         * but were set to different values.
+         */
+        @Unmarshal(location = "classpath:/testUser.json", value = "classpath:/json-list.json")
+        User user;
+    }
+
+    @Test
+    void conflictingAliasTest() {
+        ConflictingAliasTest bean = new ConflictingAliasTest();
+        Assertions.assertThrows(AnnotationConfigurationException.class,
+                () -> unmarshalAnnotationPostProcessor.postProcessBeforeInitialization(bean,
+                        ConflictingAliasTest.class.getSimpleName()));
+    }
+
+    private class OptionalMissingResourceTest {
+        /**
+         * required = false on a resource that doesn't exist should silently no-op, leaving the
+         * annotated field at its declared default ({@code null}).
+         */
+        @Unmarshal(location = "classpath:/notFound.json", required = false)
+        User user;
+    }
+
+    @Test
+    void optionalMissingResourceTest() {
+        OptionalMissingResourceTest bean = new OptionalMissingResourceTest();
+        unmarshalAnnotationPostProcessor.postProcessBeforeInitialization(bean,
+                OptionalMissingResourceTest.class.getSimpleName());
+        Assertions.assertNull(bean.user);
+    }
+
+    private class OptionalMalformedResourceTest {
+        /**
+         * required = false controls only the "resource not found" case. A resource that exists
+         * but is malformed still throws.
+         */
+        @Unmarshal(location = "classpath:/notJson.txt", required = false)
+        User user;
+    }
+
+    @Test
+    void optionalMalformedResourceStillThrows() {
+        OptionalMalformedResourceTest bean = new OptionalMalformedResourceTest();
+        Assertions.assertThrows(UnmarshalException.class, () -> unmarshalAnnotationPostProcessor
+                .postProcessBeforeInitialization(bean, OptionalMalformedResourceTest.class.getSimpleName()));
+    }
+
+    private class UnresolvablePlaceholderTest {
+        /**
+         * Unresolvable property placeholders pass through {@code Environment#resolvePlaceholders}
+         * unchanged (it's the lenient API), so the literal {@code ${...}} reaches
+         * {@code ResourceLoader#getResource} as the location, which then surfaces as a
+         * "resource not found" {@link UnmarshalException}.
+         */
+        @Unmarshal("${this.property.is.never.set}")
+        User user;
+    }
+
+    @Test
+    void unresolvablePlaceholderTest() {
+        UnresolvablePlaceholderTest bean = new UnresolvablePlaceholderTest();
+        Assertions.assertThrows(UnmarshalException.class, () -> unmarshalAnnotationPostProcessor
+                .postProcessBeforeInitialization(bean, UnresolvablePlaceholderTest.class.getSimpleName()));
     }
 
     /**
      * this test exists to appease the code coverage gods. If I could make
-     * {@link systems.misnomer.spring.unmarshal.UnmarshalAnnotationPostProcessor.unmarshall(JavaType,
+     * {@link systems.misnomer.spring.unmarshal.UnmarshalAnnotationPostProcessor.unmarshal(JavaType,
      * Resource, Charset)} private, I would, but I couldn't find a {@link Resource} configuration for
      * {@link Unmarshal} that would break
-     * {@link UnmarshalAnnotationPostProcessor#postProcessProperties}.
+     * {@link UnmarshalAnnotationPostProcessor#postProcessBeforeInitialization}.
      */
     @Test
     void unmarshalExceptionTest() {
-        JavaType javaType = TypeFactory.defaultInstance().constructType(String.class);
+        JavaType javaType = TypeFactory.defaultInstance().constructType(User.class);
         Resource resource = new DescriptiveResource("Fake resource");
         Assertions.assertThrows(UnmarshalException.class,
-                () -> unmarshalAnnotationPostProcessor.unmarshall(javaType, resource, Charset.forName("UTF-8")));
+                () -> unmarshalAnnotationPostProcessor.unmarshal(javaType, resource, Charset.forName("UTF-8")));
     }
 
 }
